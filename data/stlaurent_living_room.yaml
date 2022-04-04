@@ -1,0 +1,7 @@
+viewport_size: [1920, 1440]
+intrinsic_matrix: stlaurent_living_room/intrinsics_all.txt
+view_matrix:  stlaurent_living_room/camera_transforms_all.txt
+pointcloud:  stlaurent_living_room/living_room.ply
+
+net_ckpt: data/logs/03-15_20-02-36___dataset_names^stlaurent_living_room/checkpoints/UNet_stage_0_epoch_2_net.pth
+texture_ckpt: data/logs/03-15_20-02-36___dataset_names^stlaurent_living_room/checkpoints/PointTexture_stage_0_epoch_2_stlaurent_living_room.pth

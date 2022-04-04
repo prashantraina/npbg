@@ -1,0 +1,7 @@
+viewport_size: [1920, 1440]
+intrinsic_matrix: textbook/intrinsics_all.txt
+view_matrix:  textbook/camera_transforms_all.txt
+pointcloud:  textbook/textbook.ply
+
+net_ckpt: data/logs/03-11_09-06-04___dataset_names^textbook/checkpoints/UNet_stage_0_epoch_7_net.pth
+texture_ckpt: data/logs/03-11_09-06-04___dataset_names^textbook/checkpoints/PointTexture_stage_0_epoch_7_textbook.pth
