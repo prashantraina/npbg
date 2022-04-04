@@ -100,7 +100,7 @@ def fix_viewport_size(viewport_size, factor=16):
 class MyApp():
     def __init__(self, args):
         with open(args.config) as f:
-            _config = yaml.load(f)
+            _config = yaml.load(f, yaml.Loader)
             # support two types of configs
             # 1 type - config with scene data
             # 2 type - config with model checkpoints and path to scene data config
@@ -119,7 +119,7 @@ class MyApp():
 
         # crop/resize viewport
         if self.scene_data['intrinsic_matrix'] is not None:
-            K_src = self.scene_data['intrinsic_matrix']
+            K_src = self.scene_data['intrinsic_matrix'][0]
             old_size = self.scene_data['config']['viewport_size']
             sx = self.viewport_size[0] / old_size[0]
             sy = self.viewport_size[1] / old_size[1]
@@ -396,12 +396,12 @@ class MyApp():
     def on_close(self):
         pass
 
-    def on_mouse_press(self, x, y, buttons, modifiers):
+    def on_mouse_press(self, x, y, buttons):#, modifiers):
         # print(buttons, modifiers)
         self.trackball.set_state(Trackball.STATE_ROTATE)
         if (buttons == app.window.mouse.LEFT):
-            ctrl = (modifiers & app.window.key.MOD_CTRL)
-            shift = (modifiers & app.window.key.MOD_SHIFT)
+            ctrl = False#(modifiers & app.window.key.MOD_CTRL)
+            shift = False#(modifiers & app.window.key.MOD_SHIFT)
             if (ctrl and shift):
                 self.trackball.set_state(Trackball.STATE_ZOOM)
             elif ctrl:
@@ -421,7 +421,7 @@ class MyApp():
     def on_mouse_drag(self, x, y, dx, dy, buttons):
         self.trackball.drag(np.array([x, y]))
 
-    def on_mouse_release(self, x, y, button, modifiers):
+    def on_mouse_release(self, x, y, button):#, modifiers):
         self.mouse_pressed = False
 
     def on_mouse_scroll(self, x, y, dx, dy):

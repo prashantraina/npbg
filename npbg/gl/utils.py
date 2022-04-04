@@ -256,7 +256,7 @@ def setup_scene(scene, data, use_mesh=False, use_texture=False):
 
 def load_scene_data(path):
     with open(path, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.load(f, yaml.Loader)
 
     if 'pointcloud' in config:
         print('loading pointcloud...')
@@ -285,7 +285,7 @@ def load_scene_data(path):
             intrinsic_matrix, (width, height) = intrinsics_from_xml(apath)
             assert tuple(config['viewport_size']) == (width, height), f'calibration width, height: ({width}, {height})'
         else:
-            intrinsic_matrix = np.loadtxt(apath)[:3, :3]
+            intrinsic_matrix = np.loadtxt(apath).reshape(-1, 3, 3)
     else:
         intrinsic_matrix = None
 

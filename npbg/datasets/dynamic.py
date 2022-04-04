@@ -112,7 +112,7 @@ class DynamicDataset:
     zfar = 1000
     
     def __init__(self, scene_data, input_format, image_size,
-                 view_list, target_list, mask_list, label_list,
+                 intrinsics_list, view_list, target_list, mask_list, label_list,
                  keep_fov=False, gl_frame=False,
                  input_transform=None, target_transform=None,
                  num_samples=None,
@@ -127,13 +127,20 @@ class DynamicDataset:
             image_size = image_size, image_size
         
         # if render image size is different from camera image size, then shift principal point
-        K_src = scene_data['intrinsic_matrix']
+        #K_src = scene_data['intrinsic_matrix']
         old_size = scene_data['config']['viewport_size']
         sx = image_size[0] / old_size[0]
         sy = image_size[1] / old_size[1]
-        K = rescale_K(K_src, sx, sy, keep_fov)
-        
+
         assert len(view_list) == len(target_list)
+
+        self.K_list = []
+        self.K_src_list = intrinsics_list
+
+        for K_src in intrinsics_list:
+
+            K = rescale_K(K_src, sx, sy, keep_fov)
+            self.K_list.append(K)
         
         print('image_size', image_size)
         self.view_list = view_list
@@ -145,8 +152,8 @@ class DynamicDataset:
         self.image_size = image_size
         self.renderer = None
         self.scene = None
-        self.K = K
-        self.K_src = K_src
+        #self.K = K
+        #self.K_src = K_src
         self.random_zoom = random_zoom
         self.random_shift = random_shift
         self.sx = sx
@@ -213,19 +220,19 @@ class DynamicDataset:
                 mask_crop = -1 + 2 * np.array(cnt) / mask.shape[:2]
 
         view_matrix = self.view_list[idx]
-        K, proj_matrix = self._get_intrinsics(shift=mask_crop)
+        K, proj_matrix = self._get_intrinsics(idx, shift=mask_crop)
 
         target = load_image(self.target_list[idx])
-        target = self._warp(target, K)
+        target = self._warp(target, idx, K)
 
         if mask is None:
             mask = np.ones((target.shape[0], target.shape[1], 1), dtype=np.float32)
         else:
-            mask = self._warp(mask, K)
+            mask = self._warp(mask, idx, K)
 
         if self.label_list[idx]:
             label = load_image(self.label_list[idx])
-            label = self._warp(label, K)
+            label = self._warp(label, idx, K)
             label = label[..., :1]
         else:
             label = np.zeros((target.shape[0], target.shape[1], 1), dtype=np.uint8)
@@ -275,8 +282,8 @@ class DynamicDataset:
                 'label': label
                }
 
-    def _get_intrinsics(self, shift=None):
-        K = self.K.copy()
+    def _get_intrinsics(self, idx, shift=None):
+        K = self.K_list[idx].copy()
         sx = 1. if self.keep_fov else self.sx
         sy = 1. if self.keep_fov else self.sy
         if self.random_zoom:
@@ -297,8 +304,8 @@ class DynamicDataset:
             
         return K, get_proj_matrix(K, self.image_size, self.znear, self.zfar)
     
-    def _warp(self, image, K):
-        H = K @ np.linalg.inv(self.K_src)
+    def _warp(self, image, idx, K):
+        H = K @ np.linalg.inv(self.K_src_list[idx])
         image = cv2.warpPerspective(image, H, tuple(self.image_size))
         
         if self.gl_frame:
@@ -312,7 +319,7 @@ def get_datasets(args):
     # assert args.dataset_names, 'set dataset_names'
 
     with open(args.paths_file) as f:
-        paths_data = yaml.load(f)
+        paths_data = yaml.load(f, yaml.Loader)
 
     if not args.dataset_names:
         print('Using all datasets')
@@ -374,6 +381,7 @@ def _get_splits(paths_file, ds_name, args):
     scene_data = load_scene_data(scene_path)
 
     view_list = scene_data['view_matrix']
+    intrinsics_list = scene_data['intrinsic_matrix']
     camera_labels = scene_data['camera_labels']
 
     if 'target_name_func' in config:
@@ -400,19 +408,20 @@ def _get_splits(paths_file, ds_name, args):
 
     assert hasattr(args, 'splitter_module') and hasattr(args, 'splitter_args')
 
-    splits = args.splitter_module([view_list, target_list, mask_list, label_list], **args.splitter_args)
+    splits = args.splitter_module([intrinsics_list, view_list, target_list, mask_list, label_list], **args.splitter_args)
 
-    view_list_train, view_list_val = splits[0]
-    target_list_train, target_list_val = splits[1]
-    mask_list_train, mask_list_val = splits[2]
-    label_list_train, label_list_val = splits[3]
+    intrinsics_list_train, intrinsics_list_val = splits[0]
+    view_list_train, view_list_val = splits[1]
+    target_list_train, target_list_val = splits[2]
+    mask_list_train, mask_list_val = splits[3]
+    label_list_train, label_list_val = splits[4]
 
     # num_samples_train = int(config['num_samples_train']) if 'num_samples_train' in config else None
 
-    ds_train = DynamicDataset(scene_data, input_format, args.crop_size, view_list_train, target_list_train, mask_list_train, label_list_train,
+    ds_train = DynamicDataset(scene_data, input_format, args.crop_size, intrinsics_list_train, view_list_train, target_list_train, mask_list_train, label_list_train,
         use_mesh=args.use_mesh, supersampling=args.supersampling, **args.train_dataset_args)
 
-    ds_val = DynamicDataset(scene_data, input_format, args.crop_size, view_list_val, target_list_val, mask_list_val, label_list_val,
+    ds_val = DynamicDataset(scene_data, input_format, args.crop_size, intrinsics_list_val, view_list_val, target_list_val, mask_list_val, label_list_val,
         use_mesh=args.use_mesh, supersampling=args.supersampling, **args.val_dataset_args)
 
     return ds_train, ds_val

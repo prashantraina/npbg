@@ -359,7 +359,7 @@ def parse_args(parser):
     # override defaults
     if args.config:
         with open(args.config) as f:
-            config = yaml.load(f)
+            config = yaml.load(f, yaml.Loader)
 
         parser.set_defaults(**config)
 

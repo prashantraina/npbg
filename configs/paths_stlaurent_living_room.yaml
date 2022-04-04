@@ -1,0 +1,10 @@
+datasets:
+    "stlaurent_living_room":
+        scene_path: data/stlaurent_living_room.yaml
+        target_path: data/stlaurent_living_room
+        target_name_func: "lambda i: f'color_{(int(i)+1):03d}.jpg'"
+        # mask_path: masks_undistorted
+        # mask_name_func: "lambda i: f'{i}.png'"
+prashant-vbb:
+    "stlaurent_living_room":
+        data_root: /home/prashant/Documents/gitforks/npbg/data
